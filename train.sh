@@ -4,7 +4,7 @@ python multigpu_train.py \
 --batch_size_per_gpu=14 \
 --checkpoint_path=brand_sotd/ \
 --text_scale=512 \
---training_data_path=/export/gengjiajia/data/new_train_dir \
+--training_data_path=data/ \
 --geometry=RBOX \
 --learning_rate=0.0001 \
 --num_readers=24 \
