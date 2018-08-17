@@ -157,19 +157,23 @@ def from_res_map_to_bbox( res_map, th_size = 8, th_prob = 0.5, border_perc = .16
 
 
 def generate_boxes_from_map(sotd_map):
+    # TODO: check accurate
     print("sotd-map_shape:", sotd_map.shape)
     bg_map, border_map, center_map = sotd_map[0, :, :, 0], sotd_map[0, :, :, 1], sotd_map[0, :, :, 2]
-    text_area = border_map + center_map
+    text_area =  center_map
+    print np.where(text_area==1)
     text_area[text_area>0] = 1
     print("text_area_shape:", text_area.shape)
 
     # text_area = np.bitwise_or(center_map, border_map)
     image, contours, hierarchy = cv2.findContours(text_area.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    print(len(contours))
+    print('contous:',len(contours))
+    print contours
     boxes = []
     for contour in contours:
         rotrect = cv2.minAreaRect(contour)
         box = cv2.boxPoints(rotrect)
+        print('box:', box)
         box = np.int0(box)
         boxes.append(box)
 
@@ -228,7 +232,8 @@ def main(argv=None):
                 boxes, timer = detect(score_map=score, geo_map=geometry, timer=timer)
                 print('{} : net {:.0f}ms, restore {:.0f}ms, nms {:.0f}ms'.format(
                     im_fn, timer['net']*1000, timer['restore']*1000, timer['nms']*1000))
-
+                
+                # boxes = np.array(sotd_boxes)
                 if boxes is not None:
                     print('length_boxes:', len(boxes))
                     boxes = boxes[:, :8].reshape((-1, 4, 2))
@@ -271,10 +276,10 @@ def test_generate_box_from_map(img, sotd_map):
     cv2.imwrite('tmp_res.jpg', img[:, :, ::-1])
 if __name__ == '__main__':
     tf.app.run()
-    '''
+    
     import sys
     img = cv2.imread(str(sys.argv[1]))
     sotd_map = cv2.imread(str(sys.argv[2]))
     print 'sotd_map_shape:', sotd_map.shape
     test_generate_box_from_map(img, sotd_map)
-    '''
+    
