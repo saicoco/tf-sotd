@@ -159,7 +159,7 @@ def from_res_map_to_bbox( res_map, th_size = 8, th_prob = 0.5, border_perc = .16
 def generate_boxes_from_map(sotd_map):
     print("sotd-map_shape:", sotd_map.shape)
     bg_map, border_map, center_map = sotd_map[0, :, :, 0], sotd_map[0, :, :, 1], sotd_map[0, :, :, 2]
-    text_area = border_map + center_map
+    text_area = center_map
     text_area[text_area>0] = 1
     print("text_area_shape:", text_area.shape)
 
@@ -173,7 +173,7 @@ def generate_boxes_from_map(sotd_map):
         box = np.int0(box)
         boxes.append(box)
 
-    return boxes
+    return np.array(boxes, np.float32)
 
 
 def main(argv=None):
@@ -213,22 +213,17 @@ def main(argv=None):
 
                 timer = {'net': 0, 'restore': 0, 'nms': 0}
                 start = time.time()
-
+                print('im_resize_shape:', im_resized.shape)
                 sotd_map = sess.run([f_sotd], feed_dict={input_images: [im_resized]})
                 sotd_img = np.array(sotd_map[0][0,:,:,:]*255).astype(np.uint8)
                 sotd_img = cv2.resize(sotd_img, dsize=(im_resized.shape[1], im_resized.shape[0]))
                 cv2.imwrite(FLAGS.output_dir + '/'+os.path.basename(im_fn).split('.')[0]+'.png', sotd_img)
+                
                 boxes = generate_boxes_from_map(sotd_map[0])
                 print("lenth of sotd_boxes", len(boxes))
                 #print score
                 #print geometry
-
-                if boxes is not None:
-                    print('length_boxes:', len(boxes))
-                    boxes = boxes[:, :8].reshape((-1, 4, 2))
-                    boxes[:, :, 0] /= ratio_w
-                    boxes[:, :, 1] /= ratio_h
-
+                
                 duration = time.time() - start_time
                 print('[timing] {}'.format(duration))
 
@@ -242,7 +237,7 @@ def main(argv=None):
                     with open(res_file, 'w') as f:
                         for box in boxes:
                             # to avoid submitting errors
-                            box = sort_poly(box.astype(np.int32))
+                            # box = sort_poly(box.astype(np.int32))
                             if np.linalg.norm(box[0] - box[1]) < 5 or np.linalg.norm(box[3]-box[0]) < 5:
                                 continue
                             f.write('{},{},{},{},{},{},{},{}\r\n'.format(
@@ -251,7 +246,7 @@ def main(argv=None):
                             #print box
                             #print [box.astype(np.int32).reshape((-1, 1, 2))]
                             #print '******************************'
-                            cv2.polylines(im[:, :, ::-1], [box.astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 0, 255), thickness=2)
+                            cv2.polylines(im[:, :, ::-1], [box.astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=2)
                 if not FLAGS.no_write_images:
                     img_path = os.path.join(FLAGS.output_dir, os.path.basename(im_fn))
                     cv2.imwrite(img_path, im[:, :, ::-1])
