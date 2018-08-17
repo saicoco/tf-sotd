@@ -1,4 +1,4 @@
-CXXFLAGS = -I include -I/export/home/zhpm/tools/anaconda/anaconda2/include/python2.7/  -std=c++11 -O3 $(shell python3-config --cflags)
+CXXFLAGS = -I include -I/usr/include/python2.7/  -std=c++11 -O3 $(shell python-config --cflags)
 LDFLAGS = $(shell python3-config --ldflags)
 
 DEPS = lanms.h $(shell find include -xtype f)
