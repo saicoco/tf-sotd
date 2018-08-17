@@ -24,29 +24,23 @@ FLAGS = tf.app.flags.FLAGS
 gpus = list(range(len(FLAGS.gpu_list.split(','))))
 
 
-def tower_loss(images, sotd_maps, score_maps, geo_maps, training_masks, reuse_variables=None):
+def tower_loss(images, sotd_maps, training_masks, reuse_variables=None):
     # Build inference graph
     with tf.variable_scope(tf.get_variable_scope(), reuse=reuse_variables):
         f_score, f_geometry, f_sotd = model.model(images, is_training=True)
 
-    model_loss = model.loss(score_maps, f_score,
-                            geo_maps, f_geometry,
-                            training_masks)
     sotd_loss = model.dice_coefficient_sotd(sotd_maps, f_sotd, training_masks)
-    total_loss = tf.add_n([sotd_loss, model_loss] + tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+    total_loss = tf.add_n([sotd_loss] + tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
 
     # add summary
     if reuse_variables is None:
         tf.summary.image('input', images)
-        tf.summary.image('score_map', score_maps)
         tf.summary.image('score_map_pred', f_score * 255)
-        tf.summary.image('geo_map_0', geo_maps[:, :, :, 0:1])
         tf.summary.image('geo_map_0_pred', f_geometry[:, :, :, 0:1])
         tf.summary.image('training_masks', training_masks)
-        tf.summary.scalar('model_loss', model_loss)
         tf.summary.scalar('total_loss', total_loss)
 
-    return total_loss, model_loss, sotd_loss
+    return total_loss, sotd_loss
 
 
 def average_gradients(tower_grads):
@@ -78,11 +72,6 @@ def main(argv=None):
             tf.gfile.MkDir(FLAGS.checkpoint_path)
 
     input_images = tf.placeholder(tf.float32, shape=[None, None, None, 3], name='input_images')
-    input_score_maps = tf.placeholder(tf.float32, shape=[None, None, None, 1], name='input_score_maps')
-    if FLAGS.geometry == 'RBOX':
-        input_geo_maps = tf.placeholder(tf.float32, shape=[None, None, None, 5], name='input_geo_maps')
-    else:
-        input_geo_maps = tf.placeholder(tf.float32, shape=[None, None, None, 8], name='input_geo_maps')
     input_training_masks = tf.placeholder(tf.float32, shape=[None, None, None, 1], name='input_training_masks')
     input_sotd_maps = tf.placeholder(tf.float32, shape=[None, None, None, 3], name='input_sotd_maps')
     global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -95,8 +84,6 @@ def main(argv=None):
 
     # split
     input_images_split = tf.split(input_images, len(gpus))
-    input_score_maps_split = tf.split(input_score_maps, len(gpus))
-    input_geo_maps_split = tf.split(input_geo_maps, len(gpus))
     input_training_masks_split = tf.split(input_training_masks, len(gpus))
     input_sotd_maps_split = tf.split(input_sotd_maps, len(gpus))
     tower_grads = []
@@ -105,14 +92,12 @@ def main(argv=None):
         with tf.device('/gpu:%d' % gpu_id):
             with tf.name_scope('model_%d' % gpu_id) as scope:
                 iis = input_images_split[i]
-                isms = input_score_maps_split[i]
-                igms = input_geo_maps_split[i]
                 itms = input_training_masks_split[i]
                 istdms = input_sotd_maps_split[i]
-                total_loss, model_loss, sotd_loss = tower_loss(iis, istdms, isms, igms, itms, reuse_variables)
+                total_loss, sotd_loss = tower_loss(iis, istdms,  itms, reuse_variables)
                 batch_norm_updates_op = tf.group(*tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope))
                 reuse_variables = True
-                heads = ['decoder', 'east', 'sotd']
+                heads = ['decoder', 'sotd']
                 variables = []
                 for head in heads:
                     train_varibales = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'feature_fusion/' + head)
@@ -158,9 +143,7 @@ def main(argv=None):
         start = time.time()
         for step in range(FLAGS.max_steps):
             data = next(data_generator)
-            ml, tl, sl, _ = sess.run([model_loss, total_loss, sotd_loss, train_op], feed_dict={input_images: data[0],
-                                                                                input_score_maps: data[2],
-                                                                                input_geo_maps: data[3],
+            tl, sl, _ = sess.run([total_loss, sotd_loss, train_op], feed_dict={input_images: data[0],
                                                                                 input_training_masks: data[4],
                                                                                 input_sotd_maps: data[5]
                                                                                 })
@@ -172,15 +155,13 @@ def main(argv=None):
                 avg_time_per_step = (time.time() - start)/10
                 avg_examples_per_second = (10 * FLAGS.batch_size_per_gpu * len(gpus))/(time.time() - start)
                 start = time.time()
-                print('Step {:06d}, model loss {:.4f}, total loss {:.4f}, sotd loss {:.4f}, {:.2f} seconds/step, {:.2f} examples/second'.format(
-                    step, ml, tl, sl,  avg_time_per_step, avg_examples_per_second))
+                print('Step {:06d}, total loss {:.4f}, sotd loss {:.4f}, {:.2f} seconds/step, {:.2f} examples/second'.format(
+                    step,  tl, sl,  avg_time_per_step, avg_examples_per_second))
             if step % FLAGS.save_checkpoint_steps == 0:
                 saver.save(sess, FLAGS.checkpoint_path + 'model.ckpt', global_step=global_step)
 
             if step % FLAGS.save_summary_steps == 0:
                 _, tl, summary_str = sess.run([train_op, total_loss, summary_op], feed_dict={input_images: data[0],
-                                                                                             input_score_maps: data[2],
-                                                                                             input_geo_maps: data[3],
                                                                                              input_training_masks: data[4],
                                                                                              input_sotd_maps: data[5]
                                                                                              })

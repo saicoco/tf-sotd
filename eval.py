@@ -192,7 +192,7 @@ def main(argv=None):
         input_images = tf.placeholder(tf.float32, shape=[None, None, None, 3], name='input_images')
         global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
 
-        f_score, f_geometry, f_sotd = model.model(input_images, is_training=False)
+        f_sotd = model.model(input_images, is_training=False)
 
         variable_averages = tf.train.ExponentialMovingAverage(0.997, global_step)
         saver = tf.train.Saver(variable_averages.variables_to_restore())
@@ -213,21 +213,15 @@ def main(argv=None):
 
                 timer = {'net': 0, 'restore': 0, 'nms': 0}
                 start = time.time()
-                score, geometry = sess.run([f_score, f_geometry], feed_dict={input_images: [im_resized]})
 
                 sotd_map = sess.run([f_sotd], feed_dict={input_images: [im_resized]})
                 sotd_img = np.array(sotd_map[0][0,:,:,:]*255).astype(np.uint8)
                 sotd_img = cv2.resize(sotd_img, dsize=(im_resized.shape[1], im_resized.shape[0]))
                 cv2.imwrite(FLAGS.output_dir + '/'+os.path.basename(im_fn).split('.')[0]+'.png', sotd_img)
-                sotd_boxes = generate_boxes_from_map(sotd_map[0])
-                print("lenth of sotd_boxes", len(sotd_boxes))
+                boxes = generate_boxes_from_map(sotd_map[0])
+                print("lenth of sotd_boxes", len(boxes))
                 #print score
                 #print geometry
-                timer['net'] = time.time() - start
-
-                boxes, timer = detect(score_map=score, geo_map=geometry, timer=timer)
-                print('{} : net {:.0f}ms, restore {:.0f}ms, nms {:.0f}ms'.format(
-                    im_fn, timer['net']*1000, timer['restore']*1000, timer['nms']*1000))
 
                 if boxes is not None:
                     print('length_boxes:', len(boxes))
