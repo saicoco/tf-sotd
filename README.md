@@ -1,5 +1,6 @@
 # tf-sotd
 tensorflow version "Self-organized Text Detection with Minimal Post-processing via Border Learning"
+<<<<<<< HEAD
 
 ### feature
 - support [x1, y1, x2, y2, x3, y3, x4, y4] format label
@@ -27,3 +28,5 @@ tensorflow version "Self-organized Text Detection with Minimal Post-processing v
 - Results
 - Release trained model
 
+=======
+>>>>>>> parent of 0c7e919... add content into readme
