@@ -757,8 +757,8 @@ def generator(input_size=512, batch_size=32,
                 image_fns.append(im_fn)
                 score_maps.append(score_map[::4, ::4, np.newaxis].astype(np.float32))
                 geo_maps.append(geo_map[::4, ::4, :].astype(np.float32))
-                training_masks.append(training_mask[::4, ::4, np.newaxis].astype(np.float32))
-                sotd_maps.append(sotd_map[::4, ::4, :].astype(np.float32))
+                training_masks.append(training_mask[:, :, np.newaxis].astype(np.float32))
+                sotd_maps.append(sotd_map[:, :, :].astype(np.float32))
                 if len(images) == batch_size:
                     yield images, image_fns, score_maps, geo_maps, training_masks, sotd_maps
                     images = []
