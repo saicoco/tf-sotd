@@ -66,52 +66,6 @@ def resize_image(im, max_side_len=2400):
 
     return im, (ratio_h, ratio_w)
 
-
-def detect(score_map, geo_map, timer, score_map_thresh=0.8, box_thresh=0.1, nms_thres=0.2):
-    '''
-    restore text boxes from score map and geo map
-    :param score_map:
-    :param geo_map:
-    :param timer:
-    :param score_map_thresh: threshhold for score map
-    :param box_thresh: threshhold for boxes
-    :param nms_thres: threshold for nms
-    :return:
-    '''
-    if len(score_map.shape) == 4:
-        score_map = score_map[0, :, :, 0]
-        geo_map = geo_map[0, :, :, ]
-    # filter the score map
-    xy_text = np.argwhere(score_map > score_map_thresh)
-    # sort the text boxes via the y axis
-    xy_text = xy_text[np.argsort(xy_text[:, 0])]
-    # restore
-    start = time.time()
-    text_box_restored = restore_rectangle(xy_text[:, ::-1]*4, geo_map[xy_text[:, 0], xy_text[:, 1], :]) # N*4*2
-    print('{} text boxes before nms'.format(text_box_restored.shape[0]))
-    boxes = np.zeros((text_box_restored.shape[0], 9), dtype=np.float32)
-    boxes[:, :8] = text_box_restored.reshape((-1, 8))
-    boxes[:, 8] = score_map[xy_text[:, 0], xy_text[:, 1]]
-    timer['restore'] = time.time() - start
-    # nms part
-    start = time.time()
-    #boxes = nms_locality.nms_locality(boxes.astype(np.float64), nms_thres)
-    boxes = lanms.merge_quadrangle_n9(boxes.astype('float32'), nms_thres)
-    timer['nms'] = time.time() - start
-
-    if boxes.shape[0] == 0:
-        return None, timer
-
-    # here we filter some low score boxes by the average score map, this is different from the orginal paper
-    for i, box in enumerate(boxes):
-        mask = np.zeros_like(score_map, dtype=np.uint8)
-        cv2.fillPoly(mask, box[:8].reshape((-1, 4, 2)).astype(np.int32) // 4, 1)
-        boxes[i, 8] = cv2.mean(score_map, mask)[0]
-    boxes = boxes[boxes[:, 8] > box_thresh]
-
-    return boxes, timer
-
-
 def sort_poly(p):
     min_axis = np.argmin(np.sum(p, axis=1))
     p = p[[min_axis, (min_axis+1)%4, (min_axis+2)%4, (min_axis+3)%4]]
@@ -165,13 +119,10 @@ def generate_boxes_from_map(sotd_map):
 
     # text_area = np.bitwise_or(center_map, border_map)
     image, contours, hierarchy = cv2.findContours(text_area.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    print(len(contours))
-    boxes = []
-    for contour in contours:
-        rotrect = cv2.minAreaRect(contour)
-        box = cv2.boxPoints(rotrect)
-        box = np.int0(box)
-        boxes.append(box)
+
+    rotrect = cv2.minAreaRect(contours[0])
+    boxes = cv2.boxPoints(rotrect)
+    boxes = np.int0(boxes)
 
     return boxes
 
