@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="b7c40294-334f-4fe4-9bc1-6963224bb629" name="Default" comment="删掉east部分，保留sotd部分">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="b7c40294-334f-4fe4-9bc1-6963224bb629" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -31,8 +30,8 @@
       <file leaf-file-name="README.md" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/README.md">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="310">
-              <caret line="24" lean-forward="true" selection-start-line="24" selection-end-line="24" />
+            <state relative-caret-position="436">
+              <caret line="28" lean-forward="true" selection-start-line="28" selection-end-line="28" />
             </state>
           </provider>
         </entry>
@@ -229,7 +228,14 @@
       <option name="project" value="LOCAL" />
       <updated>1534734017563</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="修改readme部分，添加样例">
+      <created>1534744569352</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1534744569352</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TodoView" selected-index="4">
@@ -273,7 +279,8 @@
     <MESSAGE value="添加eval.py" />
     <MESSAGE value="sotd eval阶段box的生成" />
     <MESSAGE value="Fix generate sotd_map and get boxes from sotd_map in eval stage" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix generate sotd_map and get boxes from sotd_map in eval stage" />
+    <MESSAGE value="修改readme部分，添加样例" />
+    <option name="LAST_COMMIT_MESSAGE" value="修改readme部分，添加样例" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/kill_all.sh">
@@ -584,8 +591,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="310">
-          <caret line="24" lean-forward="true" selection-start-line="24" selection-end-line="24" />
+        <state relative-caret-position="436">
+          <caret line="28" lean-forward="true" selection-start-line="28" selection-end-line="28" />
         </state>
       </provider>
     </entry>

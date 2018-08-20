@@ -27,9 +27,3 @@ I train the model on my diy-dataset, and I test it on crowd text, here is a samp
 - [EAST](https://github.com/argman/EAST)
 - [sotd-keras-theano-version](https://gitlab.com/rex-yue-wu/ISI-PPT-Text-Detector)
 
-### TODO
-- Results
-- Release trained model
-
-=======
->>>>>>> parent of 0c7e919... add content into readme
