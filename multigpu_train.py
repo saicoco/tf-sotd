@@ -27,7 +27,7 @@ gpus = list(range(len(FLAGS.gpu_list.split(','))))
 def tower_loss(images, sotd_maps, training_masks, reuse_variables=None):
     # Build inference graph
     with tf.variable_scope(tf.get_variable_scope(), reuse=reuse_variables):
-        f_score, f_geometry, f_sotd = model.model(images, is_training=True)
+        f_sotd = model.model(images, is_training=True)
 
     sotd_loss = model.dice_coefficient_sotd(sotd_maps, f_sotd, training_masks)
     total_loss = tf.add_n([sotd_loss] + tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
@@ -35,8 +35,6 @@ def tower_loss(images, sotd_maps, training_masks, reuse_variables=None):
     # add summary
     if reuse_variables is None:
         tf.summary.image('input', images)
-        tf.summary.image('score_map_pred', f_score * 255)
-        tf.summary.image('geo_map_0_pred', f_geometry[:, :, :, 0:1])
         tf.summary.image('training_masks', training_masks)
         tf.summary.scalar('total_loss', total_loss)
 

@@ -7,9 +7,10 @@ __pycache__/
 *.png
 # C extensions
 *.so
-.idea/*
+*/.idea/*
 # Distribution / packaging
 .Python
+brand_model/
 build/
 develop-eggs/
 dist/
