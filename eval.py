@@ -112,7 +112,7 @@ def from_res_map_to_bbox( res_map, th_size = 8, th_prob = 0.5, border_perc = .16
 
 def generate_boxes_from_map(sotd_map):
     print("sotd-map_shape:", sotd_map.shape)
-    bg_map, border_map, center_map = sotd_map[0, :, :, 0], sotd_map[0, :, :, 1], sotd_map[0, :, :, 2]
+    bg_map, border_map, center_map = sotd_map[:, :, 0], sotd_map[:, :, 1], sotd_map[:, :, 2]
     text_area = center_map
     text_area[text_area>0] = 1
     print("text_area_shape:", text_area.shape)
@@ -121,7 +121,7 @@ def generate_boxes_from_map(sotd_map):
     # text_area = np.bitwise_or(center_map, border_map)
     image, contours, hierarchy = cv2.findContours(text_area.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     for contour in contours:
-        rotrect = cv2.minAreaRect(contours[0])
+        rotrect = cv2.minAreaRect(contour)
         box = cv2.boxPoints(rotrect)
         box = np.int0(box)
         polys.append(box)
@@ -132,9 +132,9 @@ def generate_boxes_from_map(sotd_map):
             r[i] = -1.*min(np.linalg.norm(poly[i] - poly[(i + 1) % 4]),
                        np.linalg.norm(poly[i] - poly[(i - 1) % 4]))
         # score map
-        shrinked_poly = shrink_poly(poly.copy(), r).astype(np.int32)[np.newaxis, :, :]
+        shrinked_poly = shrink_poly(poly.copy(), r).astype(np.int32)
         boxes.append(shrinked_poly)
-    return np.array(boxes)
+    return np.asarray(boxes, np.int32)
 
 
 def main(argv=None):
@@ -186,7 +186,11 @@ def main(argv=None):
                 
                 duration = time.time() - start_time
                 print('[timing] {}'.format(duration))
-
+                if boxes is not None:
+                    print('length_boxes:', len(boxes))
+                    boxes = boxes[:, :8].reshape((-1, 4, 2))
+                    boxes[:, :, 0] = boxes[:, :, 0] * 1./ratio_w
+                    boxes[:, :, 1] = boxes[:, :, 1] * 1./ratio_h
                 # save to file
                 if boxes is not None:
                     res_file = os.path.join(
