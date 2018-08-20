@@ -20,8 +20,11 @@ tensorflow version "Self-organized Text Detection with Minimal Post-processing v
 
 ### Some Results
 I train the model on my diy-dataset, and I test it on crowd text, here is a sample result from "沉默的大多数"
-![img](samples/333.jpg)
-![img](samples/333.png)
+
+<figure class="half">
+    <img src="samples/333.jpg"/>
+    <img src="samples/333.png"/>
+</figure>
 
 ### References
 - [EAST](https://github.com/argman/EAST)
