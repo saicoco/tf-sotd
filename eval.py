@@ -16,7 +16,7 @@ tf.app.flags.DEFINE_string('output_dir', '/tmp/ch4_test_images/images/', '')
 tf.app.flags.DEFINE_bool('no_write_images', False, 'do not write images')
 
 import model
-from icdar import restore_rectangle
+from icdar import restore_rectangle, shrink_poly
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -65,52 +65,6 @@ def resize_image(im, max_side_len=2400):
     ratio_w = resize_w / float(w)
 
     return im, (ratio_h, ratio_w)
-
-
-def detect(score_map, geo_map, timer, score_map_thresh=0.8, box_thresh=0.1, nms_thres=0.2):
-    '''
-    restore text boxes from score map and geo map
-    :param score_map:
-    :param geo_map:
-    :param timer:
-    :param score_map_thresh: threshhold for score map
-    :param box_thresh: threshhold for boxes
-    :param nms_thres: threshold for nms
-    :return:
-    '''
-    if len(score_map.shape) == 4:
-        score_map = score_map[0, :, :, 0]
-        geo_map = geo_map[0, :, :, ]
-    # filter the score map
-    xy_text = np.argwhere(score_map > score_map_thresh)
-    # sort the text boxes via the y axis
-    xy_text = xy_text[np.argsort(xy_text[:, 0])]
-    # restore
-    start = time.time()
-    text_box_restored = restore_rectangle(xy_text[:, ::-1]*4, geo_map[xy_text[:, 0], xy_text[:, 1], :]) # N*4*2
-    print('{} text boxes before nms'.format(text_box_restored.shape[0]))
-    boxes = np.zeros((text_box_restored.shape[0], 9), dtype=np.float32)
-    boxes[:, :8] = text_box_restored.reshape((-1, 8))
-    boxes[:, 8] = score_map[xy_text[:, 0], xy_text[:, 1]]
-    timer['restore'] = time.time() - start
-    # nms part
-    start = time.time()
-    #boxes = nms_locality.nms_locality(boxes.astype(np.float64), nms_thres)
-    boxes = lanms.merge_quadrangle_n9(boxes.astype('float32'), nms_thres)
-    timer['nms'] = time.time() - start
-
-    if boxes.shape[0] == 0:
-        return None, timer
-
-    # here we filter some low score boxes by the average score map, this is different from the orginal paper
-    for i, box in enumerate(boxes):
-        mask = np.zeros_like(score_map, dtype=np.uint8)
-        cv2.fillPoly(mask, box[:8].reshape((-1, 4, 2)).astype(np.int32) // 4, 1)
-        boxes[i, 8] = cv2.mean(score_map, mask)[0]
-    boxes = boxes[boxes[:, 8] > box_thresh]
-
-    return boxes, timer
-
 
 def sort_poly(p):
     min_axis = np.argmin(np.sum(p, axis=1))
@@ -162,18 +116,25 @@ def generate_boxes_from_map(sotd_map):
     text_area = center_map
     text_area[text_area>0] = 1
     print("text_area_shape:", text_area.shape)
-
+    polys = []
+    boxes = []
     # text_area = np.bitwise_or(center_map, border_map)
     image, contours, hierarchy = cv2.findContours(text_area.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    print(len(contours))
-    boxes = []
     for contour in contours:
-        rotrect = cv2.minAreaRect(contour)
+        rotrect = cv2.minAreaRect(contours[0])
         box = cv2.boxPoints(rotrect)
         box = np.int0(box)
-        boxes.append(box)
+        polys.append(box)
 
-    return np.array(boxes, np.float32)
+    for poly in polys:
+        r = [None, None, None, None]
+        for i in range(4):
+            r[i] = -1.*min(np.linalg.norm(poly[i] - poly[(i + 1) % 4]),
+                       np.linalg.norm(poly[i] - poly[(i - 1) % 4]))
+        # score map
+        shrinked_poly = shrink_poly(poly.copy(), r).astype(np.int32)[np.newaxis, :, :]
+        boxes.append(shrinked_poly)
+    return np.array(boxes)
 
 
 def main(argv=None):
@@ -218,8 +179,7 @@ def main(argv=None):
                 sotd_img = np.array(sotd_map[0][0,:,:,:]*255).astype(np.uint8)
                 sotd_img = cv2.resize(sotd_img, dsize=(im_resized.shape[1], im_resized.shape[0]))
                 cv2.imwrite(FLAGS.output_dir + '/'+os.path.basename(im_fn).split('.')[0]+'.png', sotd_img)
-                
-                boxes = generate_boxes_from_map(sotd_map[0])
+                boxes = generate_boxes_from_map(sotd_img)
                 print("lenth of sotd_boxes", len(boxes))
                 #print score
                 #print geometry
@@ -246,7 +206,7 @@ def main(argv=None):
                             #print box
                             #print [box.astype(np.int32).reshape((-1, 1, 2))]
                             #print '******************************'
-                            cv2.polylines(im[:, :, ::-1], [box.astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=2)
+                            cv2.polylines(im[:, :, ::-1], [box.astype(np.int32).reshape((-1, 1, 2))], True, color=(255, 0, 0), thickness=2)
                 if not FLAGS.no_write_images:
                     img_path = os.path.join(FLAGS.output_dir, os.path.basename(im_fn))
                     cv2.imwrite(img_path, im[:, :, ::-1])
