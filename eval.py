@@ -113,6 +113,7 @@ def from_res_map_to_bbox( res_map, th_size = 8, th_prob = 0.5, border_perc = .16
 def generate_boxes_from_map(sotd_map):
     print("sotd-map_shape:", sotd_map.shape)
     bg_map, border_map, center_map = sotd_map[:, :, 0], sotd_map[:, :, 1], sotd_map[:, :, 2]
+
     text_area = center_map
     text_area[text_area>0] = 1
     print("text_area_shape:", text_area.shape)
@@ -191,6 +192,10 @@ def main(argv=None):
                     boxes = boxes[:, :8].reshape((-1, 4, 2))
                     boxes[:, :, 0] = boxes[:, :, 0] * 1./ratio_w
                     boxes[:, :, 1] = boxes[:, :, 1] * 1./ratio_h
+
+            
+                duration = time.time() - start_time
+                print('[timing] {}'.format(duration))
                 # save to file
                 if boxes is not None:
                     res_file = os.path.join(
@@ -201,7 +206,8 @@ def main(argv=None):
                     with open(res_file, 'w') as f:
                         for box in boxes:
                             # to avoid submitting errors
-                            # box = sort_poly(box.astype(np.int32))
+                            box = sort_poly(box.astype(np.int32))
+
                             if np.linalg.norm(box[0] - box[1]) < 5 or np.linalg.norm(box[3]-box[0]) < 5:
                                 continue
                             f.write('{},{},{},{},{},{},{},{}\r\n'.format(
